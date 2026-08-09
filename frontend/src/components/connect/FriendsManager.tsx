@@ -43,11 +43,12 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
 
   const sendRequestMutation = useMutation({
     mutationFn: async (input: string) => {
-      const res = await apiClient.post(`/connect/friends/request?target_email_or_id=${encodeURIComponent(input)}`);
+      const res = await apiClient.post(`/connect/friends/request?target_username_or_id=${encodeURIComponent(input)}`);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connect_friends'] });
+      queryClient.invalidateQueries({ queryKey: ['partner_recommendations'] });
       setTargetInput('');
       setStatusMsg('Friend request sent! 🚀');
       setTimeout(() => setStatusMsg(''), 3000);
@@ -164,68 +165,95 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
         </div>
       )}
 
-      {/* Registered Peers Directory & Fast DM */}
-      <div className="pt-4 border-t border-[var(--border-default)] space-y-3">
+      {/* Instagram-Style Suggested Peers Directory & Fast DM */}
+      <div className="pt-4 border-t border-[var(--border-default)] space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" /> ScholarOS Peer Directory ({recommendations?.length || 0})
-          </h3>
-          <span className="text-[10px] text-gray-400">Direct Fast DM Enabled</span>
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Instagram-Style Suggested Peers ({recommendations?.length || 0})
+            </h3>
+            <p className="text-[11px] text-gray-400">All registered real students in ScholarOS Network • Direct DM Enabled</p>
+          </div>
+          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+            ● Real Registered Users Only
+          </span>
         </div>
 
         {recommendations && recommendations.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {recommendations.map((rec: any) => (
-              <div
-                key={rec.user_id}
-                className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-purple-500/20 hover:border-purple-500/40 transition flex flex-col justify-between space-y-2 text-xs shadow-md"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-bold text-white shrink-0 text-xs">
-                      {rec.full_name?.charAt(0) || 'P'}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {recommendations
+              .filter((rec: any) => {
+                if (!targetInput.trim()) return true;
+                const query = targetInput.toLowerCase();
+                return (
+                  rec.full_name?.toLowerCase().includes(query) ||
+                  rec.institution_name?.toLowerCase().includes(query) ||
+                  rec.field?.toLowerCase().includes(query) ||
+                  rec.specialization?.toLowerCase().includes(query)
+                );
+              })
+              .map((rec: any) => (
+                <div
+                  key={rec.user_id}
+                  className="p-4 rounded-2xl bg-[var(--surface-2)] border border-purple-500/20 hover:border-purple-500/50 transition flex flex-col justify-between space-y-3 text-xs shadow-lg group transform-gpu hover:scale-[1.01]"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center font-black text-white shrink-0 shadow-md text-sm">
+                        {rec.full_name?.charAt(0) || 'U'}
+                      </div>
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        {Math.round(rec.matching_score * 100)}% Match
+                      </span>
                     </div>
-                    <div className="truncate">
-                      <h4 className="font-bold text-white truncate">{rec.full_name}</h4>
-                      <p className="text-[10px] text-gray-400 truncate">{rec.institution_name || 'ScholarOS Peer'}</p>
+
+                    <div>
+                      <h4 className="font-bold text-white text-sm group-hover:text-purple-300 transition-colors truncate">
+                        {rec.full_name}
+                      </h4>
+                      <p className="text-[11px] text-indigo-300 font-semibold truncate">
+                        {rec.specialization || rec.field || 'Student'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 truncate">
+                        {rec.institution_name || 'ScholarOS Academic Network'}
+                      </p>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    {Math.round(rec.matching_score * 100)}% Match
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => onStartDirectMessage && onStartDirectMessage(rec.user_id, rec.full_name)}
-                    className="flex-1 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Fast DM
-                  </button>
-                  {rec.connection_status === 'accepted' ? (
-                    <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[11px]">
-                      Connected
-                    </span>
-                  ) : rec.connection_status === 'pending' ? (
-                    <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
-                      Pending
-                    </span>
-                  ) : (
+                  <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                     <button
-                      onClick={() => sendRequestMutation.mutate(rec.user_id)}
-                      disabled={sendRequestMutation.isPending}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center gap-1 transition shadow-sm disabled:opacity-50"
+                      onClick={() => onStartDirectMessage && onStartDirectMessage(rec.user_id, rec.full_name)}
+                      className="flex-1 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
                     >
-                      <UserPlus className="w-3.5 h-3.5" /> Connect
+                      <MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Fast DM
                     </button>
-                  )}
+                    {rec.connection_status === 'accepted' ? (
+                      <span className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[11px]">
+                        Connected
+                      </span>
+                    ) : rec.connection_status === 'pending' ? (
+                      <span className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
+                        Pending
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => sendRequestMutation.mutate(rec.user_id)}
+                        disabled={sendRequestMutation.isPending}
+                        className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center gap-1 transition shadow-md disabled:opacity-50"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" /> Connect
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-500 py-2">No registered peers found in network yet.</p>
+          <div className="p-8 text-center rounded-2xl bg-[var(--surface-2)] border border-dashed border-white/10 space-y-2">
+            <Users className="w-8 h-8 text-purple-400 mx-auto opacity-80" />
+            <p className="text-xs text-gray-300 font-semibold">No other registered users in the network yet.</p>
+            <p className="text-[11px] text-gray-400">Invite classmates or tell friends to register on ScholarOS!</p>
+          </div>
         )}
       </div>
     </div>

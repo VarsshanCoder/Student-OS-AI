@@ -99,17 +99,22 @@ async def get_user_friends(
 
 @router.post("/friends/request", response_model=UserConnectionResponse, status_code=status.HTTP_201_CREATED)
 async def send_friend_request(
-    target_username_or_id: str,
+    target_username_or_id: Optional[str] = None,
+    target_email_or_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    query_str = target_username_or_id or target_email_or_id
+    if not query_str:
+        raise HTTPException(status_code=400, detail="Target username, email, or user ID required")
+
     res = await db.execute(
         select(User)
         .where(
             or_(
-                User.id == target_username_or_id,
-                User.full_name.ilike(f"%{target_username_or_id}%"),
-                User.email.ilike(f"%{target_username_or_id}%")
+                User.id == query_str,
+                User.full_name.ilike(f"%{query_str}%"),
+                User.email.ilike(f"%{query_str}%")
             )
         )
     )
@@ -320,10 +325,16 @@ async def get_ai_partner_recommendations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Fetch all registered users in ScholarOS except current_user
+    # Fetch all real registered users in ScholarOS (excluding current user and system admins)
     res = await db.execute(
         select(User)
-        .where(User.id != current_user.id)
+        .where(
+            and_(
+                User.id != current_user.id,
+                User.is_admin == False
+            )
+        )
+        .order_by(User.created_at.desc())
     )
     other_users = res.scalars().all()
 

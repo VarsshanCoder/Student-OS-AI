@@ -10,6 +10,8 @@ class UserBase(BaseModel):
     avatar_url: Optional[str] = None
     subscription_tier: str = "free"
     is_admin: bool = False
+    role: str = "STUDENT"
+    discovery_setting: str = "anyone"
     onboarding_completed: bool = False
     timezone: str = "Asia/Kolkata"
 
@@ -26,6 +28,7 @@ class UserUpdate(BaseModel):
     preferred_language: Optional[str] = None
     avatar_url: Optional[str] = None
     timezone: Optional[str] = None
+    discovery_setting: Optional[str] = None
 
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -39,6 +42,7 @@ class UserProfileUpdate(BaseModel):
     current_year: Optional[int] = None
     current_semester: Optional[int] = None
     subjects: Optional[List[str]] = None
+    discovery_setting: Optional[str] = None
 
 class UserProfileResponse(BaseModel):
     """Full user profile including academic memory — used by dashboard, settings, and admin panel."""
@@ -49,6 +53,8 @@ class UserProfileResponse(BaseModel):
     preferred_language: str = "en"
     subscription_tier: str = "free"
     is_admin: bool = False
+    role: str = "STUDENT"
+    discovery_setting: str = "anyone"
     onboarding_completed: bool = False
     # Academic profile fields
     education_level: Optional[str] = None

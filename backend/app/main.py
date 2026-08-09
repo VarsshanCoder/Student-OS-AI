@@ -10,6 +10,9 @@ from app.models.user import User
 from app.models.academic_profile import AcademicProfile
 from sqlalchemy import select
 
+from app.models.audit_log import AdminAuditLog
+from app.models.resource_share import ResourceShare
+
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger("scholar_os")
 
@@ -25,11 +28,18 @@ async def lifespan(app: FastAPI):
                     await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
                     await conn.execute(text("ALTER TABLE study_blocks ADD COLUMN IF NOT EXISTS note_id VARCHAR(36);"))
                     await conn.execute(text("ALTER TABLE notes ADD COLUMN IF NOT EXISTS tiptap_json JSONB;"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'STUDENT';"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS discovery_setting VARCHAR(20) DEFAULT 'anyone';"))
+                    await conn.execute(text("ALTER TABLE user_connections ADD COLUMN IF NOT EXISTS blocked_by_id VARCHAR(36);"))
+                    await conn.execute(text("UPDATE users SET role = 'SUPER_ADMIN' WHERE is_admin = true;"))
                 except Exception as e:
-                    logger.warning(f"Postgres extension notice: {e}")
+                    logger.warning(f"Postgres extension/migration notice: {e}")
             else:
                 try:
                     await conn.execute(text("ALTER TABLE notes ADD COLUMN tiptap_json JSON;"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'STUDENT';"))
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN discovery_setting VARCHAR(20) DEFAULT 'anyone';"))
+                    await conn.execute(text("ALTER TABLE user_connections ADD COLUMN blocked_by_id VARCHAR(36);"))
                 except Exception as e:
                     pass
             try:
@@ -57,6 +67,7 @@ async def lifespan(app: FastAPI):
                         preferred_language="en",
                         subscription_tier="scholar_pro",
                         is_admin=True,
+                        role="SUPER_ADMIN",
                         onboarding_completed=True,
                         is_active=True
                     )
@@ -75,6 +86,7 @@ async def lifespan(app: FastAPI):
                     await db.commit()
                 else:
                     admin_user.is_admin = True
+                    admin_user.role = "SUPER_ADMIN"
                     admin_user.password_hash = hashed_pw
                     admin_user.onboarding_completed = True
                     await db.commit()

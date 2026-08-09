@@ -13,7 +13,10 @@ import {
   Sparkles,
   MessageSquare,
   Loader2,
-  X
+  X,
+  UserX,
+  Ban,
+  UserCheck
 } from 'lucide-react';
 
 interface FriendsManagerProps {
@@ -64,8 +67,44 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connect_friends'] });
+      queryClient.invalidateQueries({ queryKey: ['partner_recommendations'] });
     },
   });
+
+  const declineMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.post(`/connect/friends/${id}/reject`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connect_friends'] });
+      queryClient.invalidateQueries({ queryKey: ['partner_recommendations'] });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/connect/friends/${id}/remove`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connect_friends'] });
+      queryClient.invalidateQueries({ queryKey: ['partner_recommendations'] });
+    },
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiClient.post(`/connect/friends/${userId}/block`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connect_friends'] });
+      queryClient.invalidateQueries({ queryKey: ['partner_recommendations'] });
+      setStatusMsg('User blocked.');
+      setTimeout(() => setStatusMsg(''), 3000);
+    },
+  });
+
+  const activeConnections = friends?.filter((f: any) => f.status === 'accepted') || [];
+  const pendingReceived = friends?.filter((f: any) => f.status === 'pending') || [];
 
   return (
     <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 space-y-6 shadow-xl">
@@ -74,7 +113,7 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-400" /> Connections & Peer Network
           </h2>
-          <p className="text-xs text-[var(--text-secondary)]">Connect with classmates to share notes and study in group rooms.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Search classmates by username, full name, or course department.</p>
         </div>
       </div>
 
@@ -90,7 +129,7 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
           type="text"
           value={targetInput}
           onChange={(e) => setTargetInput(e.target.value)}
-          placeholder="Enter classmate's username or full name..."
+          placeholder="Search classmate by username, name, college, or course..."
           className="flex-1 bg-[var(--surface-2)] border border-[var(--border-default)] rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
         />
         <button
@@ -108,18 +147,48 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
         </div>
       )}
 
+      {/* Pending Incoming Friend Requests */}
+      {pendingReceived.length > 0 && (
+        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-indigo-400" /> Incoming Friend Requests ({pendingReceived.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {pendingReceived.map((f: any) => (
+              <div key={f.id} className="p-3 rounded-xl bg-[var(--surface-2)] border border-indigo-500/30 flex items-center justify-between text-xs">
+                <div className="font-bold text-white">{f.requester_name || f.addressee_name}</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => acceptMutation.mutate(f.id)}
+                    className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Accept
+                  </button>
+                  <button
+                    onClick={() => declineMutation.mutate(f.id)}
+                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-rose-500/20 text-gray-300 hover:text-rose-300 font-bold text-[11px]"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Connection Lists */}
       {isLoading ? (
         <div className="text-center text-xs text-gray-500 py-6">Loading connection network...</div>
       ) : (
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            Active Connections ({friends?.filter((f: any) => f.status === 'accepted').length || 0}):
+            Active Connections ({activeConnections.length}):
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {friends && friends.length > 0 ? (
-              friends.map((f: any) => (
+          {activeConnections.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {activeConnections.map((f: any) => (
                 <div
                   key={f.id}
                   className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-white/5 flex items-center justify-between text-xs"
@@ -136,46 +205,63 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
                     </div>
                   </div>
 
-                  {f.status === 'pending' ? (
+                  <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => acceptMutation.mutate(f.id)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1"
+                      onClick={() => onStartDirectMessage && onStartDirectMessage(f.addressee_id || f.requester_id, f.addressee_name || f.requester_name)}
+                      className="px-2.5 py-1 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1 transition"
                     >
-                      <Check className="w-3.5 h-3.5" /> Accept
+                      <MessageSquare className="w-3 h-3 text-purple-400" /> Fast DM
                     </button>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => onStartDirectMessage && onStartDirectMessage(f.addressee_id || f.requester_id, f.addressee_name || f.requester_name)}
-                        className="px-2.5 py-1 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1 transition"
-                      >
-                        <MessageSquare className="w-3 h-3 text-purple-400" /> Fast DM
-                      </button>
-                      <span className="text-[10px] uppercase font-bold text-indigo-300 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30">
-                        Connected
-                      </span>
-                    </div>
-                  )}
+                    <button
+                      onClick={() => removeMutation.mutate(f.id)}
+                      className="p-1.5 rounded-xl text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                      title="Remove Connection"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs text-gray-500 col-span-2 py-2">No active connections yet. Search a classmate&apos;s username above or select a registered peer below.</p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            /* Dedicated Encouraging Empty State */
+            <div className="p-8 text-center rounded-3xl bg-[var(--surface-2)] border border-dashed border-white/10 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-white">Build Your Study Network</h3>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  Connect with verified classmates to exchange notes, work on assignments, and study together in group rooms.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3 pt-1">
+                <button
+                  onClick={() => {
+                    const el = document.querySelector('input[type="text"]') as HTMLInputElement;
+                    if (el) el.focus();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md inline-flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> + Add Friend
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Instagram-Style Suggested Peers Directory & Fast DM */}
+      {/* Contextual Suggested Study Partners */}
       <div className="pt-4 border-t border-[var(--border-default)] space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Instagram-Style Suggested Peers ({recommendations?.length || 0})
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Suggested Study Partners ({recommendations?.length || 0})
             </h3>
-            <p className="text-[11px] text-gray-400">All registered real students in ScholarOS Network • Direct DM Enabled</p>
+            <p className="text-[11px] text-gray-400">Classmates matched by institution, specialization, and shared subjects</p>
           </div>
           <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-            ● Real Registered Users Only
+            ● Authentic Classmates Only
           </span>
         </div>
 
@@ -195,7 +281,7 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
               .map((rec: any) => (
                 <div
                   key={rec.user_id}
-                  className="p-4 rounded-2xl bg-[var(--surface-2)] border border-purple-500/20 hover:border-purple-500/50 transition flex flex-col justify-between space-y-3 text-xs shadow-lg group transform-gpu hover:scale-[1.01]"
+                  className="p-4 rounded-2xl bg-[var(--surface-2)] border border-purple-500/20 hover:border-purple-500/50 transition flex flex-col justify-between space-y-3 text-xs shadow-lg group"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -217,6 +303,11 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
                       <p className="text-[10px] text-gray-400 truncate">
                         {rec.institution_name || 'ScholarOS Academic Network'}
                       </p>
+                    </div>
+
+                    {/* Contextual Match Explanation Badge */}
+                    <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-200">
+                      💡 Suggested because you both study: <strong className="text-white">{rec.specialization || rec.common_subjects?.[0] || 'Academic Subjects'}</strong>
                     </div>
                   </div>
 
@@ -251,7 +342,7 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
         ) : (
           <div className="p-8 text-center rounded-2xl bg-[var(--surface-2)] border border-dashed border-white/10 space-y-2">
             <Users className="w-8 h-8 text-purple-400 mx-auto opacity-80" />
-            <p className="text-xs text-gray-300 font-semibold">No other registered users in the network yet.</p>
+            <p className="text-xs text-gray-300 font-semibold">No other registered peers found in network yet.</p>
             <p className="text-[11px] text-gray-400">Invite classmates or tell friends to register on ScholarOS!</p>
           </div>
         )}

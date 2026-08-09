@@ -22,11 +22,11 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     user = User(
         email=clean_email,
         password_hash=hashed_pw,
-        raw_password=req.password,
         full_name=req.full_name.strip(),
         preferred_language=req.preferred_language or "en",
         subscription_tier="free",
         is_admin=False,
+        role="STUDENT",
         onboarding_completed=False
     )
     db.add(user)

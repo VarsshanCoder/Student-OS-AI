@@ -24,7 +24,9 @@ from app.schemas.connect import (
     ConnectMessageCreate,
     ConnectMessageResponse,
     PartnerRecommendationResponse,
-    AcademicFeedItemResponse
+    AcademicFeedItemResponse,
+    ResourceShareCreate,
+    ResourceShareResponse
 )
 from app.core.database import get_db
 
@@ -165,12 +167,123 @@ async def accept_friend_request(
 ):
     res = await db.execute(select(UserConnection).where(UserConnection.id == connection_id))
     conn = res.scalars().first()
-    if not conn or (conn.addressee_id != current_user.id and conn.requester_id != current_user.id):
+    if not conn or conn.addressee_id != current_user.id:
         raise HTTPException(status_code=404, detail="Connection request not found")
 
     conn.status = "accepted"
     await db.commit()
     return {"message": "Friend request accepted!"}
+
+@router.post("/friends/{connection_id}/reject")
+async def reject_friend_request(
+    connection_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(UserConnection).where(UserConnection.id == connection_id))
+    conn = res.scalars().first()
+    if not conn or conn.addressee_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Connection request not found")
+
+    await db.delete(conn)
+    await db.commit()
+    return {"message": "Friend request declined"}
+
+@router.post("/friends/{connection_id}/cancel")
+async def cancel_friend_request(
+    connection_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(UserConnection).where(UserConnection.id == connection_id))
+    conn = res.scalars().first()
+    if not conn or conn.requester_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Sent request not found")
+
+    await db.delete(conn)
+    await db.commit()
+    return {"message": "Friend request cancelled"}
+
+@router.delete("/friends/{connection_id}/remove")
+async def remove_friend(
+    connection_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(UserConnection).where(
+            and_(
+                UserConnection.id == connection_id,
+                or_(UserConnection.requester_id == current_user.id, UserConnection.addressee_id == current_user.id)
+            )
+        )
+    )
+    conn = res.scalars().first()
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    await db.delete(conn)
+    await db.commit()
+    return {"message": "Friend connection removed"}
+
+@router.post("/friends/{target_user_id}/block")
+async def block_user(
+    target_user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if target_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot block yourself")
+
+    res = await db.execute(
+        select(UserConnection).where(
+            or_(
+                and_(UserConnection.requester_id == current_user.id, UserConnection.addressee_id == target_user_id),
+                and_(UserConnection.requester_id == target_user_id, UserConnection.addressee_id == current_user.id)
+            )
+        )
+    )
+    conn = res.scalars().first()
+    if not conn:
+        conn = UserConnection(
+            requester_id=current_user.id,
+            addressee_id=target_user_id,
+            status="blocked",
+            blocked_by_id=current_user.id
+        )
+        db.add(conn)
+    else:
+        conn.status = "blocked"
+        conn.blocked_by_id = current_user.id
+
+    await db.commit()
+    return {"message": "User blocked successfully"}
+
+@router.post("/friends/{target_user_id}/unblock")
+async def unblock_user(
+    target_user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(UserConnection).where(
+            and_(
+                UserConnection.status == "blocked",
+                UserConnection.blocked_by_id == current_user.id,
+                or_(
+                    and_(UserConnection.requester_id == current_user.id, UserConnection.addressee_id == target_user_id),
+                    and_(UserConnection.requester_id == target_user_id, UserConnection.addressee_id == current_user.id)
+                )
+            )
+        )
+    )
+    conn = res.scalars().first()
+    if not conn:
+        raise HTTPException(status_code=404, detail="Blocked record not found")
+
+    await db.delete(conn)
+    await db.commit()
+    return {"message": "User unblocked"}
 
 # --- 2. STUDY GROUPS & ROOMS ---
 
@@ -380,6 +493,117 @@ async def get_ai_partner_recommendations(
             connection_status=conn_map.get(u.id, "none")
         ))
 
+    return out
+
+# --- 4B. RESOURCE SHARING ENDPOINTS ---
+
+@router.post("/resources/share", response_model=ResourceShareResponse, status_code=status.HTTP_201_CREATED)
+async def share_resource_with_peer(
+    req: ResourceShareCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.models.resource_share import ResourceShare
+
+    share = ResourceShare(
+        owner_id=current_user.id,
+        shared_with_id=req.shared_with_id,
+        group_id=req.group_id,
+        resource_type=req.resource_type,
+        resource_id=req.resource_id,
+        permission=req.permission
+    )
+    db.add(share)
+    await db.commit()
+    await db.refresh(share)
+
+    target_name = None
+    if req.shared_with_id:
+        target_res = await db.execute(select(User).where(User.id == req.shared_with_id))
+        t_user = target_res.scalars().first()
+        target_name = t_user.full_name if t_user else None
+
+    # Fetch title
+    res_title = f"{req.resource_type.capitalize()} #{req.resource_id[:6]}"
+    if req.resource_type == "note":
+        n_res = await db.execute(select(Note).where(Note.id == req.resource_id))
+        n = n_res.scalars().first()
+        if n:
+            res_title = n.title
+    elif req.resource_type == "pdf":
+        p_res = await db.execute(select(Document).where(Document.id == req.resource_id))
+        p = p_res.scalars().first()
+        if p:
+            res_title = p.filename
+
+    return ResourceShareResponse(
+        id=share.id,
+        owner_id=share.owner_id,
+        owner_name=current_user.full_name,
+        shared_with_id=share.shared_with_id,
+        shared_with_name=target_name,
+        group_id=share.group_id,
+        resource_type=share.resource_type,
+        resource_id=share.resource_id,
+        permission=share.permission,
+        created_at=share.created_at,
+        resource_title=res_title
+    )
+
+@router.get("/resources/shared", response_model=List[ResourceShareResponse])
+async def get_shared_resources_with_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.models.resource_share import ResourceShare
+
+    res = await db.execute(
+        select(ResourceShare)
+        .where(
+            or_(
+                ResourceShare.shared_with_id == current_user.id,
+                ResourceShare.owner_id == current_user.id
+            )
+        )
+        .order_by(ResourceShare.created_at.desc())
+    )
+    shares = res.scalars().all()
+    out = []
+    for s in shares:
+        owner_res = await db.execute(select(User).where(User.id == s.owner_id))
+        owner = owner_res.scalars().first()
+
+        target_name = None
+        if s.shared_with_id:
+            t_res = await db.execute(select(User).where(User.id == s.shared_with_id))
+            t = t_res.scalars().first()
+            target_name = t.full_name if t else None
+
+        res_title = f"{s.resource_type.capitalize()} #{s.resource_id[:6]}"
+        if s.resource_type == "note":
+            n_res = await db.execute(select(Note).where(Note.id == s.resource_id))
+            n = n_res.scalars().first()
+            if n:
+                res_title = n.title
+        elif s.resource_type == "pdf":
+            p_res = await db.execute(select(Document).where(Document.id == s.resource_id))
+            p = p_res.scalars().first()
+            if p:
+                res_title = p.filename
+
+        out.append(ResourceShareResponse(
+            id=s.id,
+            owner_id=s.owner_id,
+            owner_name=owner.full_name if owner else "Student",
+            shared_with_id=s.shared_with_id,
+            shared_with_name=target_name,
+            group_id=s.group_id,
+            resource_type=s.resource_type,
+            resource_id=s.resource_id,
+            permission=s.permission,
+            created_at=s.created_at,
+            resource_title=res_title
+        ))
     return out
 
 # --- 5. ACADEMIC REPUTATION & PROGRESS FEED ---

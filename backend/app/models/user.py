@@ -11,7 +11,6 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String(15), unique=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    raw_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
     preferred_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
@@ -19,6 +18,8 @@ class User(Base, TimestampMixin):
     subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default="STUDENT", nullable=False) # SUPER_ADMIN, ADMIN, MODERATOR, STUDENT
+    discovery_setting: Mapped[str] = mapped_column(String(20), default="anyone", nullable=False) # anyone, my_institution, invite_link, nobody
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="Asia/Kolkata", nullable=False)

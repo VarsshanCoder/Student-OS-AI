@@ -7,14 +7,14 @@ import {
   Globe, 
   Users, 
   MessageSquare, 
+  BookOpen,
   Layers, 
   FileText, 
-  Volume2, 
   Sparkles, 
-  Award, 
   Plus,
   Loader2,
-  X
+  X,
+  Share2
 } from 'lucide-react';
 import FriendsManager from './FriendsManager';
 import ChatCanvas from './ChatCanvas';
@@ -23,8 +23,12 @@ import CollabEditor from './CollabEditor';
 
 export default function ConnectShell() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'network' | 'chat' | 'whiteboard' | 'editor'>('network');
+  const [activeTab, setActiveTab] = useState<'friends' | 'chat' | 'groups'>('friends');
+  const [groupSubTab, setGroupSubTab] = useState<'channels' | 'whiteboard' | 'editor'>('channels');
   const [selectedChannel, setSelectedChannel] = useState<string>('general_study_lounge');
+
+  // Shared Resources Side Panel
+  const [showSharedDrawer, setShowSharedDrawer] = useState(false);
 
   // Create Group Modal
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -40,6 +44,14 @@ export default function ConnectShell() {
     },
   });
 
+  const { data: sharedResources } = useQuery({
+    queryKey: ['shared_resources'],
+    queryFn: async () => {
+      const res = await apiClient.get('/connect/resources/shared');
+      return res.data || [];
+    },
+  });
+
   const createGroupMutation = useMutation({
     mutationFn: async () => {
       const res = await apiClient.post('/connect/groups', {
@@ -49,15 +61,12 @@ export default function ConnectShell() {
       });
       return res.data;
     },
-    onSuccess: (newG) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connect_groups'] });
       setShowCreateGroup(false);
       setGroupName('');
       setGroupDesc('');
-      if (newG?.id) {
-        setSelectedChannel(newG.id);
-        setActiveTab('chat');
-      }
+      setGroupSubject('');
     },
   });
 
@@ -69,17 +78,17 @@ export default function ConnectShell() {
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl w-full mx-auto pb-24 md:pb-16 overflow-x-hidden">
-      {/* Header Banner (Fluid typography & non-overflowing bounds) */}
+      {/* Header Banner */}
       <div className="p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-black border border-indigo-500/30 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 w-full">
         <div className="space-y-1.5 w-full md:w-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold">
-            <Globe className="w-3.5 h-3.5 text-indigo-400" /> ScholarConnect Network
+            <Globe className="w-3.5 h-3.5 text-indigo-400" /> ScholarConnect Academic Engine
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white leading-tight">
-            AI Academic Collaboration Engine
+            Academic Collaboration & Peer Network
           </h1>
           <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
-            Collaborate in real-time with verified peers. Share AI notes, flashcard decks, mindmaps, assignments, and study in group rooms.
+            Connect with verified classmates, exchange study notes, collaborate in real-time group workspaces, and study together.
           </p>
         </div>
 
@@ -91,37 +100,50 @@ export default function ConnectShell() {
         </button>
       </div>
 
-      {/* Main Mode Navigation Bar (Scrollable without scrollbar) */}
-      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-[var(--border-default)] text-xs font-bold w-full">
-        {[
-          { id: 'network', label: '👥 Connections', icon: Users },
-          { id: 'chat', label: '💬 Encrypted Chat', icon: MessageSquare },
-          { id: 'whiteboard', label: '📊 Whiteboard', icon: Layers },
-          { id: 'editor', label: '📝 Collab Notes', icon: FileText }
-        ].map((t) => (
+      {/* Primary Navigation Bar (3 Primary Modes: Friends, Messages, Study Groups) */}
+      <div className="no-scrollbar flex items-center justify-between border-b border-[var(--border-default)] text-xs font-bold w-full pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          {[
+            { id: 'friends', label: '👥 Friends', icon: Users },
+            { id: 'chat', label: '💬 Messages', icon: MessageSquare },
+            { id: 'groups', label: '📚 Study Groups', icon: BookOpen }
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={`px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 transition shrink-0 border ${
+                activeTab === t.id
+                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                  : 'bg-[var(--surface-1)] text-gray-400 border-[var(--border-default)] hover:text-white'
+              }`}
+            >
+              <t.icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'chat' && (
           <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
-            className={`px-3.5 py-2 rounded-2xl font-bold flex items-center gap-1.5 transition shrink-0 border ${
-              activeTab === t.id
-                ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                : 'bg-[var(--surface-1)] text-gray-400 border-[var(--border-default)] hover:text-white'
-            }`}
+            onClick={() => setShowSharedDrawer(!showSharedDrawer)}
+            className="px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold flex items-center gap-1.5 transition"
           >
-            <t.icon className="w-3.5 h-3.5" />
-            {t.label}
+            <Share2 className="w-3.5 h-3.5 text-purple-400" /> Shared Resources ({sharedResources?.length || 0})
           </button>
-        ))}
+        )}
       </div>
 
       {/* TAB CONTENT RENDERER */}
       <div className="min-h-[450px] w-full">
-        {activeTab === 'network' && <FriendsManager onStartDirectMessage={handleStartDirectMessage} />}
+        {/* Mode 1: Friends Manager */}
+        {activeTab === 'friends' && <FriendsManager onStartDirectMessage={handleStartDirectMessage} />}
+
+        {/* Mode 2: 1-on-1 Messages & Channels */}
         {activeTab === 'chat' && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[550px] sm:h-[600px] w-full">
             <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-3 space-y-3 overflow-y-auto max-h-[220px] lg:max-h-full">
               <div className="space-y-1">
-                <h3 className="font-bold text-[11px] uppercase tracking-wider text-gray-400 px-2">Group Channels</h3>
+                <h3 className="font-bold text-[11px] uppercase tracking-wider text-gray-400 px-2">Academic Conversations</h3>
                 <button
                   onClick={() => setSelectedChannel('general_study_lounge')}
                   className={`w-full p-2.5 rounded-2xl text-xs font-bold text-left transition border ${
@@ -149,14 +171,93 @@ export default function ConnectShell() {
               </div>
             </div>
 
-            <div className="lg:col-span-3 h-full w-full">
+            <div className={`h-full w-full ${showSharedDrawer ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
               <ChatCanvas channelId={selectedChannel} />
             </div>
+
+            {/* Shared Resources Side Drawer */}
+            {showSharedDrawer && (
+              <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 space-y-3 overflow-y-auto h-full">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <h3 className="font-bold text-xs text-purple-300 flex items-center gap-1.5">
+                    <Share2 className="w-3.5 h-3.5 text-purple-400" /> Shared Resources
+                  </h3>
+                  <button onClick={() => setShowSharedDrawer(false)} className="text-gray-400 hover:text-white text-xs">✕</button>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {sharedResources && sharedResources.length > 0 ? (
+                    sharedResources.map((res: any) => (
+                      <div key={res.id} className="p-3 rounded-2xl bg-[var(--surface-2)] border border-purple-500/20 space-y-1">
+                        <div className="font-bold text-white truncate">{res.resource_title}</div>
+                        <div className="text-[10px] text-gray-400 flex items-center justify-between">
+                          <span>Owner: {res.owner_name}</span>
+                          <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">{res.permission}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-500 text-center py-6">No shared notes or documents in this conversation yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {activeTab === 'whiteboard' && <SharedWhiteboard />}
-        {activeTab === 'editor' && <CollabEditor />}
+        {/* Mode 3: Study Groups Workspace */}
+        {activeTab === 'groups' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-[var(--border-default)] pb-2 text-xs font-bold">
+              <button
+                onClick={() => setGroupSubTab('channels')}
+                className={`px-3.5 py-1.5 rounded-xl transition ${groupSubTab === 'channels' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                Group Rooms ({groups?.length || 0})
+              </button>
+              <button
+                onClick={() => setGroupSubTab('whiteboard')}
+                className={`px-3.5 py-1.5 rounded-xl transition ${groupSubTab === 'whiteboard' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                Interactive Whiteboard
+              </button>
+              <button
+                onClick={() => setGroupSubTab('editor')}
+                className={`px-3.5 py-1.5 rounded-xl transition ${groupSubTab === 'editor' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                Collaborative Notes
+              </button>
+            </div>
+
+            {groupSubTab === 'channels' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(groups || []).map((g: any) => (
+                  <div key={g.id} className="p-4 rounded-3xl bg-[var(--surface-1)] border border-[var(--border-default)] space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm text-white">{g.name}</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {g.member_count} members
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 line-clamp-2">{g.description || 'Collaborative study group workspace.'}</p>
+                    <button
+                      onClick={() => {
+                        setSelectedChannel(g.id);
+                        setActiveTab('chat');
+                      }}
+                      className="w-full py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition"
+                    >
+                      Open Study Group Chat
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {groupSubTab === 'whiteboard' && <SharedWhiteboard />}
+            {groupSubTab === 'editor' && <CollabEditor />}
+          </div>
+        )}
       </div>
 
       {/* Create Group Modal */}
@@ -177,56 +278,56 @@ export default function ConnectShell() {
                 e.preventDefault();
                 createGroupMutation.mutate();
               }}
-              className="space-y-3 text-xs"
+              className="space-y-3"
             >
               <div>
-                <label className="font-bold text-gray-300 uppercase block mb-1">Group Name</label>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Group Name</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Advanced Machine Learning Prep"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="e.g. Data Structures Study Circle"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-default)] rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-gray-300 uppercase block mb-1">Subject</label>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Subject</label>
                 <input
                   type="text"
+                  placeholder="e.g. Computer Science"
                   value={groupSubject}
                   onChange={(e) => setGroupSubject(e.target.value)}
-                  placeholder="e.g. Computer Science"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-default)] rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-gray-300 uppercase block mb-1">Description</label>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Description</label>
                 <textarea
-                  rows={2}
+                  rows={3}
+                  placeholder="Group goals, exam dates, or study schedule..."
                   value={groupDesc}
                   onChange={(e) => setGroupDesc(e.target.value)}
-                  placeholder="Goals and study schedule for this group..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-default)] rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateGroup(false)}
-                  className="px-3.5 py-2 rounded-xl bg-[var(--surface-2)] text-gray-300 font-bold hover:bg-white/10"
+                  className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createGroupMutation.isPending || !groupName.trim()}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center gap-1.5 shadow-lg disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
                 >
-                  {createGroupMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Create Group 🚀
+                  {createGroupMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Create Group
                 </button>
               </div>
             </form>

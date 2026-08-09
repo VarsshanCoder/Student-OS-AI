@@ -83,3 +83,25 @@ class AcademicFeedItemResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ResourceShareCreate(BaseModel):
+    shared_with_id: Optional[str] = None
+    group_id: Optional[str] = None
+    resource_type: str # note, pdf, flashcard, mindmap, quiz, study_plan
+    resource_id: str
+    permission: str = "view_only" # view_only, can_duplicate, can_collaborate
+
+class ResourceShareResponse(BaseModel):
+    id: str
+    owner_id: str
+    owner_name: Optional[str] = None
+    shared_with_id: Optional[str] = None
+    shared_with_name: Optional[str] = None
+    group_id: Optional[str] = None
+    resource_type: str
+    resource_id: str
+    permission: str
+    created_at: datetime
+    resource_title: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

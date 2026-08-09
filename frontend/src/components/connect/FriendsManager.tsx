@@ -89,7 +89,7 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
           type="text"
           value={targetInput}
           onChange={(e) => setTargetInput(e.target.value)}
-          placeholder="Enter classmate's email address..."
+          placeholder="Enter classmate's username or full name..."
           className="flex-1 bg-[var(--surface-2)] border border-[var(--border-default)] rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
         />
         <button
@@ -97,7 +97,7 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
           disabled={sendRequestMutation.isPending || !targetInput.trim()}
           className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg disabled:opacity-50"
         >
-          {sendRequestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Send Request
+          {sendRequestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Add Friend
         </button>
       </form>
 
@@ -158,19 +158,19 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
                 </div>
               ))
             ) : (
-              <p className="text-xs text-gray-500 col-span-2 py-2">No connections added yet. Check recommended peers below or type a classmate&apos;s email above.</p>
+              <p className="text-xs text-gray-500 col-span-2 py-2">No active connections yet. Search a classmate&apos;s username above or select a registered peer below.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Recommended Registered Peers Directory & Fast DM */}
+      {/* Registered Peers Directory & Fast DM */}
       <div className="pt-4 border-t border-[var(--border-default)] space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" /> AI Recommended Registered Peers ({recommendations?.length || 0})
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" /> ScholarOS Peer Directory ({recommendations?.length || 0})
           </h3>
-          <span className="text-[10px] text-gray-400">Direct Fast DM Available</span>
+          <span className="text-[10px] text-gray-400">Direct Fast DM Enabled</span>
         </div>
 
         {recommendations && recommendations.length > 0 ? (
@@ -203,19 +203,29 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Fast DM
                   </button>
-                  <button
-                    onClick={() => sendRequestMutation.mutate(rec.user_id)}
-                    disabled={sendRequestMutation.isPending}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center gap-1 transition shadow-sm disabled:opacity-50"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" /> Connect
-                  </button>
+                  {rec.connection_status === 'accepted' ? (
+                    <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[11px]">
+                      Connected
+                    </span>
+                  ) : rec.connection_status === 'pending' ? (
+                    <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
+                      Pending
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => sendRequestMutation.mutate(rec.user_id)}
+                      disabled={sendRequestMutation.isPending}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center gap-1 transition shadow-sm disabled:opacity-50"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" /> Connect
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-500 py-2">No other registered peers found in network yet.</p>
+          <p className="text-xs text-gray-500 py-2">No registered peers found in network yet.</p>
         )}
       </div>
     </div>

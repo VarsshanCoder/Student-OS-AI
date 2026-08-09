@@ -70,6 +70,7 @@ class PartnerRecommendationResponse(BaseModel):
     matching_score: float
     common_subjects: List[str]
     complementary_topics: List[str]
+    connection_status: Optional[str] = "none"
 
 class AcademicFeedItemResponse(BaseModel):
     id: str

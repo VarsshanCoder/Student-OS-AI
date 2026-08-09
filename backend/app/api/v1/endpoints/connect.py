@@ -99,28 +99,46 @@ async def get_user_friends(
 
 @router.post("/friends/request", response_model=UserConnectionResponse, status_code=status.HTTP_201_CREATED)
 async def send_friend_request(
-    target_email_or_id: str,
+    target_username_or_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     res = await db.execute(
         select(User)
-        .where(or_(User.email == target_email_or_id, User.id == target_email_or_id))
+        .where(
+            or_(
+                User.id == target_username_or_id,
+                User.full_name.ilike(f"%{target_username_or_id}%"),
+                User.email.ilike(f"%{target_username_or_id}%")
+            )
+        )
     )
     target_user = res.scalars().first()
     if not target_user:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Student user not found")
     if target_user.id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
 
-    conn = UserConnection(
-        requester_id=current_user.id,
-        addressee_id=target_user.id,
-        status="pending"
+    # Check if a connection already exists
+    existing_res = await db.execute(
+        select(UserConnection)
+        .where(
+            or_(
+                and_(UserConnection.requester_id == current_user.id, UserConnection.addressee_id == target_user.id),
+                and_(UserConnection.requester_id == target_user.id, UserConnection.addressee_id == current_user.id)
+            )
+        )
     )
-    db.add(conn)
-    await db.commit()
-    await db.refresh(conn)
+    conn = existing_res.scalars().first()
+    if not conn:
+        conn = UserConnection(
+            requester_id=current_user.id,
+            addressee_id=target_user.id,
+            status="pending"
+        )
+        db.add(conn)
+        await db.commit()
+        await db.refresh(conn)
 
     return UserConnectionResponse(
         id=conn.id,
@@ -313,6 +331,22 @@ async def get_ai_partner_recommendations(
     my_prof = my_prof_res.scalars().first()
     my_subjects = set(my_prof.subjects if my_prof and my_prof.subjects else ["Computer Science", "Physics"])
 
+    # Fetch connections for current user
+    conn_res = await db.execute(
+        select(UserConnection)
+        .where(
+            or_(
+                UserConnection.requester_id == current_user.id,
+                UserConnection.addressee_id == current_user.id
+            )
+        )
+    )
+    my_connections = conn_res.scalars().all()
+    conn_map = {}
+    for c in my_connections:
+        peer_id = c.addressee_id if c.requester_id == current_user.id else c.requester_id
+        conn_map[peer_id] = c.status
+
     out = []
     for u in other_users:
         p_res = await db.execute(select(AcademicProfile).where(AcademicProfile.user_id == u.id))
@@ -331,7 +365,8 @@ async def get_ai_partner_recommendations(
             specialization=p.specialization if p else "AI & Machine Learning",
             matching_score=match_score,
             common_subjects=common or list(their_subjects)[:2],
-            complementary_topics=["Exam Practice", "Formula Review", "Collaborative Notes"]
+            complementary_topics=["Exam Practice", "Formula Review", "Collaborative Notes"],
+            connection_status=conn_map.get(u.id, "none")
         ))
 
     return out

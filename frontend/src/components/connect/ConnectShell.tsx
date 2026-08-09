@@ -20,13 +20,10 @@ import FriendsManager from './FriendsManager';
 import ChatCanvas from './ChatCanvas';
 import SharedWhiteboard from './SharedWhiteboard';
 import CollabEditor from './CollabEditor';
-import StudyRoomLounge from './StudyRoomLounge';
-import PartnerRecommender from './PartnerRecommender';
-import AcademicFeed from './AcademicFeed';
 
 export default function ConnectShell() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'network' | 'chat' | 'whiteboard' | 'editor' | 'lounge' | 'recommender' | 'feed'>('network');
+  const [activeTab, setActiveTab] = useState<'network' | 'chat' | 'whiteboard' | 'editor'>('network');
   const [selectedChannel, setSelectedChannel] = useState<string>('general_study_lounge');
 
   // Create Group Modal
@@ -64,14 +61,6 @@ export default function ConnectShell() {
     },
   });
 
-  const { data: recommendations } = useQuery({
-    queryKey: ['partner_recommendations'],
-    queryFn: async () => {
-      const res = await apiClient.get('/connect/recommendations');
-      return res.data || [];
-    },
-  });
-
   const handleStartDirectMessage = (peerId: string, peerName: string) => {
     const channelId = `dm_${peerId}`;
     setSelectedChannel(channelId);
@@ -90,7 +79,7 @@ export default function ConnectShell() {
             AI Academic Collaboration Engine
           </h1>
           <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
-            Collaborate in real-time with verified peers. Share AI notes, flashcard decks, mindmaps, assignments, and study in live voice lounges.
+            Collaborate in real-time with verified peers. Share AI notes, flashcard decks, mindmaps, assignments, and study in group rooms.
           </p>
         </div>
 
@@ -108,10 +97,7 @@ export default function ConnectShell() {
           { id: 'network', label: '👥 Connections', icon: Users },
           { id: 'chat', label: '💬 Encrypted Chat', icon: MessageSquare },
           { id: 'whiteboard', label: '📊 Whiteboard', icon: Layers },
-          { id: 'editor', label: '📝 Collab Notes', icon: FileText },
-          { id: 'lounge', label: '🎙️ Voice Lounge', icon: Volume2 },
-          { id: 'recommender', label: '🤖 AI Buddy Match', icon: Sparkles },
-          { id: 'feed', label: '🏆 Peer Progress Feed', icon: Award }
+          { id: 'editor', label: '📝 Collab Notes', icon: FileText }
         ].map((t) => (
           <button
             key={t.id}
@@ -161,31 +147,6 @@ export default function ConnectShell() {
                   </button>
                 ))}
               </div>
-
-              {/* Direct Messages List */}
-              <div className="space-y-1 pt-2 border-t border-[var(--border-default)]">
-                <h3 className="font-bold text-[11px] uppercase tracking-wider text-purple-300 px-2 flex items-center justify-between">
-                  <span>Fast Peer DMs</span>
-                  <Sparkles className="w-3 h-3 text-purple-400" />
-                </h3>
-                {(recommendations || []).map((rec: any) => {
-                  const dmId = `dm_${rec.user_id}`;
-                  return (
-                    <button
-                      key={rec.user_id}
-                      onClick={() => setSelectedChannel(dmId)}
-                      className={`w-full p-2 rounded-2xl text-xs font-semibold text-left transition border flex items-center justify-between gap-2 ${
-                        selectedChannel === dmId
-                          ? 'bg-purple-600/20 text-purple-300 border-purple-500/40 font-bold'
-                          : 'bg-white/5 text-gray-300 border-transparent hover:border-white/10'
-                      }`}
-                    >
-                      <span className="truncate">💬 {rec.full_name}</span>
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Online" />
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             <div className="lg:col-span-3 h-full w-full">
@@ -196,9 +157,6 @@ export default function ConnectShell() {
 
         {activeTab === 'whiteboard' && <SharedWhiteboard />}
         {activeTab === 'editor' && <CollabEditor />}
-        {activeTab === 'lounge' && <StudyRoomLounge />}
-        {activeTab === 'recommender' && <PartnerRecommender onStartDirectMessage={handleStartDirectMessage} />}
-        {activeTab === 'feed' && <AcademicFeed />}
       </div>
 
       {/* Create Group Modal */}

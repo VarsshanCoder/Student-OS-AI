@@ -7,6 +7,8 @@ import json
 import logging
 
 from app.dependencies import get_current_user
+from app.models.note import Note
+from app.models.document import Document
 from app.models.user import User
 from app.models.academic_profile import AcademicProfile
 from app.models.connect import (

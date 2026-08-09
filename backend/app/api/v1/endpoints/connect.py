@@ -440,13 +440,16 @@ async def get_ai_partner_recommendations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Fetch all real registered users in ScholarOS (excluding current user and system admins)
+    from app.services.ml_recommendation_service import ml_recommendation_engine
+
+    # Fetch all real registered users in ScholarOS (excluding current user, system admins, and discovery=='nobody')
     res = await db.execute(
         select(User)
         .where(
             and_(
                 User.id != current_user.id,
-                User.is_admin == False
+                User.is_admin == False,
+                User.discovery_setting != "nobody"
             )
         )
         .order_by(User.created_at.desc())
@@ -455,7 +458,6 @@ async def get_ai_partner_recommendations(
 
     my_prof_res = await db.execute(select(AcademicProfile).where(AcademicProfile.user_id == current_user.id))
     my_prof = my_prof_res.scalars().first()
-    my_subjects = set(my_prof.subjects if my_prof and my_prof.subjects else ["Computer Science", "Physics"])
 
     # Fetch connections for current user
     conn_res = await db.execute(
@@ -475,25 +477,38 @@ async def get_ai_partner_recommendations(
 
     out = []
     for u in other_users:
+        # Skip if user is blocked
+        if conn_map.get(u.id) == "blocked":
+            continue
+
         p_res = await db.execute(select(AcademicProfile).where(AcademicProfile.user_id == u.id))
         p = p_res.scalars().first()
 
-        their_subjects = set(p.subjects if p and p.subjects else ["General Studies"])
-        common = list(my_subjects.intersection(their_subjects))
-        match_score = round(min(0.99, 0.75 + (len(common) * 0.08)), 2)
+        match_score, common_subjs, reason = ml_recommendation_engine.compute_match_score(
+            my_user=current_user,
+            my_prof=my_prof,
+            target_user=u,
+            target_prof=p
+        )
+
+        their_subjs = (p.subjects_json if p and p.subjects_json else []) or ["General Studies"]
 
         out.append(PartnerRecommendationResponse(
             user_id=u.id,
             full_name=u.full_name or u.email.split("@")[0].capitalize(),
             avatar_url=u.avatar_url,
-            institution_name=p.institution_name if p else "ScholarOS University",
+            institution_name=p.institution_name if p else "ScholarOS Network",
             field=p.field if p else "Academic Studies",
-            specialization=p.specialization if p else "AI & Machine Learning",
+            specialization=p.specialization if p else "General Studies",
             matching_score=match_score,
-            common_subjects=common or list(their_subjects)[:2],
+            common_subjects=common_subjs or list(their_subjs)[:2],
             complementary_topics=["Exam Practice", "Formula Review", "Collaborative Notes"],
+            match_reason=reason,
             connection_status=conn_map.get(u.id, "none")
         ))
+
+    # Sort descending by machine learning matching score
+    out.sort(key=lambda x: x.matching_score, reverse=True)
 
     return out
 

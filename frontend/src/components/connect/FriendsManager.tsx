@@ -305,9 +305,9 @@ export default function FriendsManager({ onStartDirectMessage }: FriendsManagerP
                       </p>
                     </div>
 
-                    {/* Contextual Match Explanation Badge */}
+                    {/* Contextual ML Match Explanation Badge */}
                     <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-200">
-                      💡 Suggested because you both study: <strong className="text-white">{rec.specialization || rec.common_subjects?.[0] || 'Academic Subjects'}</strong>
+                      🤖 <span className="font-semibold text-purple-300">ML Partner Match:</span> {rec.match_reason || `Matched with ${rec.full_name} (${Math.round(rec.matching_score * 100)}%)`}
                     </div>
                   </div>
 

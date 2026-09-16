@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/stores/app-store';
 import { 
@@ -23,6 +24,7 @@ import {
   Minimize2,
   FileDown
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import TiptapRenderer from '@/components/notes/TiptapRenderer';
 import PDFExportEngine from '@/components/notes/PDFExportEngine';
@@ -76,6 +78,7 @@ export default function NotesPage() {
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Fetch real enrolled subjects for suggestions
   const { data: profile } = useQuery({
@@ -87,14 +90,28 @@ export default function NotesPage() {
   });
   const realSubjects: string[] = profile?.subjects || user?.subjects || [];
 
-  // Fetch all user notes from backend database
-  const { data: notes, isLoading } = useQuery<NoteItem[]>({
+  // Fetch paginated user notes from backend database
+  const { 
+    data: notesData, 
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
     queryKey: ['notes'],
-    queryFn: async () => {
-      const res = await apiClient.get('/notes');
+    queryFn: async ({ pageParam = null }) => {
+      const url = pageParam ? `/notes?limit=20&last_id=${pageParam}` : '/notes?limit=20';
+      const res = await apiClient.get(url);
       return res.data || [];
     },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length < 20) return null;
+      return lastPage[lastPage.length - 1].id;
+    }
   });
+
+  const notes = notesData?.pages.flat() || [];
 
   // Manual Note Creation Mutation
   const createMutation = useMutation({
@@ -287,8 +304,8 @@ export default function NotesPage() {
 
   // Filter notes by search
   const filteredNotes = notes?.filter((n) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
+    if (!debouncedSearch) return true;
+    const q = debouncedSearch.toLowerCase();
     return (
       n.title.toLowerCase().includes(q) ||
       n.plain_text.toLowerCase().includes(q) ||
@@ -495,8 +512,13 @@ export default function NotesPage() {
 
       {/* Note Grid */}
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-gray-400">Loading notes vault...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Skeleton key={i} className="h-48 rounded-2xl w-full" />
+          ))}
+        </div>
       ) : filteredNotes && filteredNotes.length > 0 ? (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNotes.map((note) => (
             <div
@@ -538,6 +560,19 @@ export default function NotesPage() {
             </div>
           ))}
         </div>
+        
+        {hasNextPage && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="px-6 py-2 rounded-xl bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-default)] text-sm font-semibold text-gray-300 hover:text-white transition-colors"
+            >
+              {isFetchingNextPage ? 'Loading...' : 'Load More Notes'}
+            </button>
+          </div>
+        )}
+      </>
       ) : (
         <div className="p-8 sm:p-12 text-center rounded-2xl bg-[var(--surface-1)] border border-dashed border-[var(--border-default)] space-y-4 max-w-lg mx-auto mt-8">
           <BookOpen className="w-12 h-12 text-indigo-400 mx-auto" />

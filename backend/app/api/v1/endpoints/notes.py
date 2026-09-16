@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from pydantic import BaseModel
 from typing import List, Optional
 import os
 import logging
@@ -50,88 +51,56 @@ async def create_note(
     )
     return result.scalars().first()
 
-@router.post("/generate-ai", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
+class JobSubmitResponse(BaseModel):
+    job_id: str
+    status: str
+    message: str
+
+@router.post("/generate-ai", response_model=JobSubmitResponse, status_code=status.HTTP_202_ACCEPTED)
 async def generate_ai_note(
     req: AINoteGenerateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Generates a structured, Tiptap JSON academic study note using Groq Llama 3.3 70B and saves it directly into the user's database.
+    Submits a background job to generate a structured, Tiptap JSON academic study note.
     """
-    pipeline_res = generate_full_enterprise_note(
-        topic=req.topic,
-        subject_name=req.subject_name or "",
-        language=req.language or "en",
-        source_text=req.source_text or ""
-    )
-
-    blueprint = pipeline_res["blueprint"]
-    full_content = pipeline_res["full_markdown"]
-    tiptap_doc = pipeline_res.get("tiptap_json") or convert_markdown_to_tiptap_json(full_content, blueprint.title)
-    db_blocks = pipeline_res["db_blocks"]
-
-    subject_id = None
-    if req.subject_name:
-        res_subj = await db.execute(
-            select(Subject)
-            .where(Subject.user_id == current_user.id)
-            .where(Subject.name.ilike(f"%{req.subject_name}%"))
-        )
-        subj_obj = res_subj.scalars().first()
-        if subj_obj:
-            subject_id = subj_obj.id
-
-    word_count = len(full_content.split())
-
-    note = Note(
+    from app.worker.manager import job_manager
+    import hashlib
+    
+    # Create idempotency key based on parameters
+    raw_key = f"{current_user.id}_{req.topic}_{req.subject_name}_{req.language}_{req.source_text[:100]}"
+    idempotency_key = "note_" + hashlib.sha256(raw_key.encode()).hexdigest()
+    
+    parameters = {
+        "user_id": current_user.id,
+        "topic": req.topic,
+        "subject_name": req.subject_name,
+        "language": req.language,
+        "source_text": req.source_text,
+        "source_type": req.source_type,
+        "source_url": req.source_url
+    }
+    
+    job = await job_manager.create_job(
+        db=db,
         user_id=current_user.id,
-        subject_id=subject_id,
-        title=blueprint.title,
-        content=full_content,
-        tiptap_json=tiptap_doc,
-        plain_text=full_content[:500],
-        source="ai-generated",
-        tags=blueprint.tags or [req.topic.lower(), "ai-generated"],
-        topic=req.topic,
-        word_count=word_count,
-        icon="📚",
-        estimated_reading_time=blueprint.estimated_reading_time,
-        difficulty_level=blueprint.difficulty
+        job_type="large_note_generation",
+        parameters=parameters,
+        idempotency_key=idempotency_key
     )
-
-    db.add(note)
-    await db.flush()
-
-    source = NoteSource(
-        note_id=note.id,
-        source_type=req.source_type,
-        url=req.source_url,
-        metadata_json={"source_text": bool(req.source_text)}
-    )
-    db.add(source)
-
-    for b_data in db_blocks:
-        block = NoteBlock(
-            note_id=note.id,
-            block_type=b_data["block_type"],
-            content=b_data["content"],
-            order=b_data["order"]
-        )
-        db.add(block)
-
-    await db.commit()
-
-    result = await db.execute(
-        select(Note)
-        .options(selectinload(Note.blocks), selectinload(Note.sources))
-        .where(Note.id == note.id)
-    )
-    return result.scalars().first()
+    
+    return {
+        "job_id": job.id,
+        "status": job.status,
+        "message": "Note generation queued successfully."
+    }
 
 @router.get("", response_model=List[NoteResponse])
 async def list_notes(
     subject_id: Optional[str] = None,
+    limit: int = 50,
+    last_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -143,7 +112,17 @@ async def list_notes(
     )
     if subject_id:
         query = query.where(Note.subject_id == str(subject_id))
-    query = query.order_by(Note.is_pinned.desc(), Note.updated_at.desc())
+    
+    # Cursor pagination if last_id is provided
+    if last_id:
+        # Fetch the cursor note to compare its updated_at
+        cursor_res = await db.execute(select(Note.updated_at).where(Note.id == last_id).where(Note.user_id == current_user.id))
+        cursor_updated_at = cursor_res.scalar()
+        if cursor_updated_at:
+            # Note: simplified cursor for updated_at descending
+            query = query.where(Note.updated_at < cursor_updated_at)
+            
+    query = query.order_by(Note.is_pinned.desc(), Note.updated_at.desc()).limit(limit)
 
     result = await db.execute(query)
     notes = result.scalars().all()

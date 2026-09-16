@@ -29,3 +29,13 @@ class Message(Base, TimestampMixin):
     latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     conversation = relationship("Conversation", back_populates="messages")
+
+class ConversationSummary(Base, TimestampMixin):
+    __tablename__ = "conversation_summaries"
+
+    conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    summary_text: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int] = mapped_column(Integer, default=0)
+    messages_summarized: Mapped[int] = mapped_column(Integer, default=0)
+    
+    conversation = relationship("Conversation")

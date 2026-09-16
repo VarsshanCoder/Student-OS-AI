@@ -2,11 +2,15 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useAppStore } from '@/stores/app-store';
 
 export default function ThreeCanvas() {
   const mountRef = useRef<HTMLDivElement>(null);
+  const reducedPerformance = useAppStore(state => state.reducedPerformance);
 
   useEffect(() => {
+    if (reducedPerformance) return;
+
     const container = mountRef.current;
     if (!container) return;
 
@@ -212,7 +216,13 @@ export default function ThreeCanvas() {
       particleMaterial.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [reducedPerformance]);
+
+  if (reducedPerformance) {
+    return (
+      <div className="fixed inset-0 z-0 overflow-hidden opacity-30 pointer-events-none bg-gradient-to-br from-indigo-900/40 via-purple-900/20 to-black/80" />
+    );
+  }
 
   return (
     <div

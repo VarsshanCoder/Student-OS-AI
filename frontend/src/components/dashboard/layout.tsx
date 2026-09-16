@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, CalendarDays, BookOpen, Brain, Settings, Users } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useOfflineSync } from '@/lib/hooks/useOfflineSync';
+import { usePerformanceMetrics } from '@/lib/hooks/usePerformanceMetrics';
 
 const mobileTabs = [
   { href: '/', label: 'Home', icon: LayoutDashboard },
@@ -24,6 +26,9 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const isTutorWorkspace = pathname.startsWith('/tutor');
+
+  useOfflineSync();
+  usePerformanceMetrics();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-black text-white selection:bg-indigo-600 selection:text-white">

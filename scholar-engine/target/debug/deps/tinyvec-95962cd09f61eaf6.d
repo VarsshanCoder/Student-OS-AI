@@ -1,0 +1,11 @@
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\tinyvec-95962cd09f61eaf6.d: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\array.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\array\const_generic_impl.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\arrayvec.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\arrayvec_drain.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\slicevec.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\tinyvec.rs
+
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\libtinyvec-95962cd09f61eaf6.rmeta: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\array.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\array\const_generic_impl.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\arrayvec.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\arrayvec_drain.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\slicevec.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\tinyvec.rs
+
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\lib.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\array.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\array\const_generic_impl.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\arrayvec.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\arrayvec_drain.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\slicevec.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tinyvec-1.13.3\src\tinyvec.rs:

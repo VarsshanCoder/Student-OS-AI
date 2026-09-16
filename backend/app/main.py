@@ -12,6 +12,8 @@ from sqlalchemy import select
 
 from app.models.audit_log import AdminAuditLog
 from app.models.resource_share import ResourceShare
+from app.worker.manager import job_manager
+from app.worker import register_all_handlers
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger("scholar_os")
@@ -19,6 +21,10 @@ logger = logging.getLogger("scholar_os")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting ScholarOS Backend Engine...")
+    
+    # Initialize background worker handlers
+    register_all_handlers()
+    
     try:
         async with engine.begin() as conn:
             from sqlalchemy import text
@@ -97,6 +103,12 @@ async def lifespan(app: FastAPI):
     except BaseException as err:
         logger.error(f"Session initialization notice: {err}")
 
+    # Recover interrupted async jobs
+    try:
+        await job_manager.recover_jobs()
+    except Exception as e:
+        logger.error(f"Failed to recover async jobs: {e}")
+
     yield
     logger.info("Shutting down ScholarOS Backend Engine...")
 
@@ -106,6 +118,14 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan
 )
+
+# Exception handlers
+from app.core.exceptions import setup_exception_handlers
+setup_exception_handlers(app)
+
+# Middlewares
+from app.core.middlewares import RequestTracingMiddleware
+app.add_middleware(RequestTracingMiddleware)
 
 # Robust CORS configuration supporting all production and staging origins
 app.add_middleware(

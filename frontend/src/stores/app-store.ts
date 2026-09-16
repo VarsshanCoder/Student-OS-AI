@@ -26,9 +26,11 @@ interface AppState {
   sidebarOpen: boolean;
   theme: 'dark' | 'light';
   language: 'en' | 'ta' | 'tanglish';
+  reducedPerformance: boolean;
   setUser: (user: UserProfile | null) => void;
   toggleSidebar: () => void;
   setLanguage: (lang: 'en' | 'ta' | 'tanglish') => void;
+  setReducedPerformance: (val: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -36,7 +38,10 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarOpen: true,
   theme: 'dark',
   language: 'en',
+  reducedPerformance: typeof window !== 'undefined' ? 
+    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) : false,
   setUser: (user) => set({ user }),
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setLanguage: (language) => set({ language }),
+  setReducedPerformance: (val) => set({ reducedPerformance: val }),
 }));

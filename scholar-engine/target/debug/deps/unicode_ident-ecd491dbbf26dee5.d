@@ -1,0 +1,8 @@
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\unicode_ident-ecd491dbbf26dee5.d: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\tables.rs
+
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\libunicode_ident-ecd491dbbf26dee5.rlib: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\tables.rs
+
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\libunicode_ident-ecd491dbbf26dee5.rmeta: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\tables.rs
+
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\lib.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\unicode-ident-1.0.24\src\tables.rs:

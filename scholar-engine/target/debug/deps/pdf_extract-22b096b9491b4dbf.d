@@ -1,0 +1,9 @@
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\pdf_extract-22b096b9491b4dbf.d: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\core_fonts.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\glyphnames.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\zapfglyphnames.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\encodings.rs
+
+C:\Users\LENOVO\Documents\Student OS AI\scholar-engine\target\debug\deps\libpdf_extract-22b096b9491b4dbf.rmeta: C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\lib.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\core_fonts.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\glyphnames.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\zapfglyphnames.rs C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\encodings.rs
+
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\lib.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\core_fonts.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\glyphnames.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\zapfglyphnames.rs:
+C:\Users\LENOVO\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pdf-extract-0.7.12\src\encodings.rs:

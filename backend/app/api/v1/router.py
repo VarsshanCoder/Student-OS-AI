@@ -12,7 +12,11 @@ from app.api.v1.endpoints import (
     admin,
     note_chat,
     tutor,
-    connect
+    connect,
+    health,
+    documents,
+    jobs,
+    books
 )
 
 api_router = APIRouter()
@@ -30,3 +34,7 @@ api_router.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(tutor.router, prefix="/tutor", tags=["tutor"])
 api_router.include_router(connect.router, prefix="/connect", tags=["connect"])
+api_router.include_router(health.router, prefix="/health", tags=["health"])
+api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
+api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
+api_router.include_router(books.router, prefix="/books", tags=["books"])

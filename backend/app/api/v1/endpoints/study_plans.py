@@ -138,7 +138,7 @@ async def toggle_block_complete(
 from pydantic import BaseModel
 
 class LinkNoteRequest(BaseModel):
-    note_id: Optional[str] = None
+    note_id: str | None = None
 
 @router.patch("/blocks/{block_id}/link-note", response_model=StudyBlockResponse)
 async def link_note_to_block(

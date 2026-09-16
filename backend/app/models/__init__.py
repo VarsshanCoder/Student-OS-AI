@@ -8,6 +8,8 @@ from app.models.note import Note, NoteEmbedding
 from app.models.flashcard import Flashcard
 from app.models.conversation import Conversation, Message
 from app.models.document import Document
+from app.models.job import AsyncJob
+from app.models.knowledge_book import KnowledgeBook, KnowledgeChapter
 
 __all__ = [
     "TimestampMixin",
@@ -23,4 +25,7 @@ __all__ = [
     "Conversation",
     "Message",
     "Document",
+    "AsyncJob",
+    "KnowledgeBook",
+    "KnowledgeChapter"
 ]

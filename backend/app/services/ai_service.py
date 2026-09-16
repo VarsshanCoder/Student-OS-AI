@@ -52,7 +52,8 @@ You are Scholar, an AI study companion inside ScholarOS. Your job is to help stu
         self,
         messages: List[Dict[str, Any]],
         student_context: Optional[Dict[str, Any]] = None,
-        language: str = "en"
+        language: str = "en",
+        target_model: Optional[str] = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         client = self.get_async_client()
         if not client:
@@ -68,7 +69,9 @@ You are Scholar, an AI study companion inside ScholarOS. Your job is to help stu
             role = msg.get("role", "user")
             formatted_messages.append({"role": role, "content": msg.get("content", "")})
 
-        models_to_try = [settings.GROQ_MODEL] + [m for m in CANDIDATE_MODELS if m != settings.GROQ_MODEL]
+        # Use explicitly routed model first, fallback to configured GROQ_MODEL, then candidates
+        primary_model = target_model or settings.GROQ_MODEL
+        models_to_try = [primary_model] + [m for m in CANDIDATE_MODELS if m != primary_model]
 
         stream_started = False
         last_error = None

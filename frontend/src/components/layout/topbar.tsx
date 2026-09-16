@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/stores/app-store';
@@ -65,9 +66,11 @@ export default function Topbar() {
           className="flex items-center gap-2.5 p-1 sm:p-1.5 rounded-full hover:bg-[var(--surface-2)] transition group border border-transparent hover:border-indigo-500/30"
         >
           {user?.avatar_url || profile?.avatar_url ? (
-            <img
-              src={user?.avatar_url || profile?.avatar_url}
+            <Image
+              src={user?.avatar_url || profile?.avatar_url || ''}
               alt={user?.fullName || profile?.full_name || 'User'}
+              width={36}
+              height={36}
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-indigo-500/40 group-hover:border-indigo-400 transition"
             />
           ) : (

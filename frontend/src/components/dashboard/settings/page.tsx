@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/stores/app-store';
@@ -21,7 +22,8 @@ import {
   Layers,
   Brain,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Settings
 } from 'lucide-react';
 
 const PRESET_AVATARS = [
@@ -35,7 +37,7 @@ const PRESET_AVATARS = [
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const { user, setUser } = useAppStore();
+  const { user, setUser, reducedPerformance, setReducedPerformance } = useAppStore();
 
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -197,9 +199,11 @@ export default function SettingsPage() {
               {/* Active Avatar Preview */}
               <div className="relative group shrink-0">
                 {avatarUrl ? (
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt="Profile Avatar"
+                    width={96}
+                    height={96}
                     className="w-24 h-24 rounded-full object-cover border-4 border-indigo-500/50 shadow-xl"
                   />
                 ) : (
@@ -227,7 +231,7 @@ export default function SettingsPage() {
                           : 'border-white/10 hover:border-white/30'
                       }`}
                     >
-                      <img src={url} alt={`Preset ${idx}`} className="w-full h-full object-cover" />
+                      <Image src={url} alt={`Preset ${idx}`} width={64} height={64} className="w-full h-full object-cover" />
                     </button>
                   ))}
                   <button
@@ -286,6 +290,37 @@ export default function SettingsPage() {
                   <option value="tanglish">Tanglish</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* Performance Settings */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
+            <div className="border-b border-[var(--border-default)] pb-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-emerald-400" /> Performance Settings
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">Optimize the application for low-end devices or slower networks.</p>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-default)]">
+              <div>
+                <h3 className="text-sm font-bold text-white">Reduced Performance Mode</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-[80%]">Disables 3D effects, reduces animations, and optimizes rendering for battery saving or older hardware.</p>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setReducedPerformance(!reducedPerformance)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  reducedPerformance ? 'bg-emerald-500' : 'bg-gray-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    reducedPerformance ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
           </div>
 

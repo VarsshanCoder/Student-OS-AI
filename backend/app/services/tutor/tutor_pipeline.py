@@ -82,8 +82,8 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
         # Load Upstash Redis / DB History
         history_msgs = []
         if session_id:
-            history_msgs = await tutor_memory_store.get_session_history(session_id, limit=20)
-
+            history_msgs = await tutor_memory_store.get_session_history(session_id, limit=30)
+            
         processed_msgs = [m for m in messages if m.get("content")]
 
         # Save incoming user message to Upstash Redis & DB
@@ -119,10 +119,18 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
         elif action == "translate_tanglish":
             processed_msgs.append({"role": "user", "content": f"Re-explain {topic_name} in friendly Tanglish."})
 
-        full_msgs = [{"role": "system", "content": sys_prompt}] + history_msgs + processed_msgs
+        # Dynamically route to the optimal model based on task complexity
+        from app.services.ai_router import ai_router
+        target_model = ai_router.route_request(processed_msgs, action)
+
+        # Compress history if it exceeds token budget
+        from app.services.token_manager import token_manager
+        compressed_history = await token_manager.compress_conversation(history_msgs)
+
+        full_msgs = [{"role": "system", "content": sys_prompt}] + compressed_history + processed_msgs
 
         full_response_text = ""
-        async for chunk in ai_service.generate_response_stream(messages=full_msgs):
+        async for chunk in ai_service.generate_response_stream(messages=full_msgs, target_model=target_model):
             if chunk.get("type") == "text" and chunk.get("content"):
                 full_response_text += chunk["content"]
             yield chunk

@@ -29,14 +29,21 @@ logger = logging.getLogger(__name__)
 
 @router.get("/sessions", response_model=List[TutorSessionResponse])
 async def get_user_tutor_sessions(
+    limit: int = 50,
+    last_id: str = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(TutorSession)
-        .where(TutorSession.user_id == current_user.id)
-        .order_by(TutorSession.last_activity_at.desc())
-    )
+    query = select(TutorSession).where(TutorSession.user_id == current_user.id)
+    
+    if last_id:
+        cursor_res = await db.execute(select(TutorSession.last_activity_at).where(TutorSession.id == last_id).where(TutorSession.user_id == current_user.id))
+        cursor_time = cursor_res.scalar()
+        if cursor_time:
+            query = query.where(TutorSession.last_activity_at < cursor_time)
+            
+    query = query.order_by(TutorSession.last_activity_at.desc()).limit(limit)
+    res = await db.execute(query)
     return res.scalars().all()
 
 @router.post("/sessions", response_model=TutorSessionResponse, status_code=status.HTTP_201_CREATED)

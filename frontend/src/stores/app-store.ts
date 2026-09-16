@@ -38,8 +38,9 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarOpen: true,
   theme: 'dark',
   language: 'en',
-  reducedPerformance: typeof window !== 'undefined' ? 
-    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) : false,
+  reducedPerformance: typeof window !== 'undefined'
+    ? Boolean(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+    : false,
   setUser: (user) => set({ user }),
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setLanguage: (language) => set({ language }),

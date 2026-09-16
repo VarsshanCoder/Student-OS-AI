@@ -310,7 +310,7 @@ export default function NotesPage() {
       n.title.toLowerCase().includes(q) ||
       n.plain_text.toLowerCase().includes(q) ||
       n.source.toLowerCase().includes(q) ||
-      (n.tags && n.tags.some((t) => t.toLowerCase().includes(q)))
+      (n.tags && n.tags.some((t: string) => t.toLowerCase().includes(q)))
     );
   });
 

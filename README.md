@@ -181,5 +181,5 @@ Distributed under the **MIT License**. See `LICENSE` for details.
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by the ScholarOS Engineering Team.</sub>
+  <sub>Built By ❤️ Varsshan..</sub>
 </div>
